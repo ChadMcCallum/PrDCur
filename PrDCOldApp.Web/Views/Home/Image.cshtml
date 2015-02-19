@@ -1,0 +1,34 @@
+﻿@model PrDCOldApp.Web.Models.ImageEntry
+
+<div class="jumbotron">
+    <div class="container">
+        <img src="@Model.Path"/>
+    </div>
+</div>
+<div class="container">
+    @if (Model.Comments != null)
+    {
+        foreach (var comment in Model.Comments)
+        {
+        <div class="row">
+            <div class="col-md-12">
+                <blockquote>
+                    @comment.Content
+                </blockquote>
+            </div>
+            <div class="col-md-12 text-right">Posted by @comment.User</div>
+        </div>
+        }
+    }
+    <form method="POST">
+        <div class="form-group">
+            <label for="username">Your Name</label>
+            <input type="text" class="form-control" id="username" name="username" style="width: 250px;" />
+        </div>
+        <div class="form-group">
+            <label for="comment">Comment</label>
+            <textarea class="form-control" id="comment" name="comment" rows="3"></textarea>
+        </div>
+        <button type="submit" class="btn btn-default">Submit</button>
+    </form>
+</div>

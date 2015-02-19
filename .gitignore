@@ -1,0 +1,10 @@
+*.suo
+
+*.mswwsettings
+
+/packages/*
+bin
+obj
+*.user
+*.pubxml
+Uploads

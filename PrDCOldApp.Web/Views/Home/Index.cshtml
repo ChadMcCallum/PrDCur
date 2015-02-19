@@ -1,0 +1,48 @@
+﻿@model List<PrDCOldApp.Web.Models.ImageEntry>
+
+<!-- Main jumbotron for a primary marketing message or call to action -->
+<div class="jumbotron">
+    <div class="container">
+        <div id="image-carousel" class="carousel slide" data-ride="carousel">
+            <ol class="carousel-indicators">
+                @for (var i = 0; i < Model.Count(); i++)
+                {
+                    <li data-target="#image-carousel" data-slide-to="0" class="@(i == 0 ? "active" : "")"></li>
+                }
+            </ol>
+            <div class="carousel-inner" role="listbox">
+                @for (var i = 0; i < Model.Count(); i++)
+                {
+                    <div class="item @(i == 0 ? "active" : "")">
+                        <img src="@Model.ElementAt(i).Path"/>
+                    </div>
+                }
+            </div>
+            <a class="left carousel-control" href="#image-carousel" role="button" data-slide="prev">
+                <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
+                <span class="sr-only">Previous</span>
+            </a>
+            <a class="right carousel-control" href="#image-carousel" role="button" data-slide="next">
+                <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+                <span class="sr-only">Next</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Example row of columns -->
+    <div class="row">
+        @foreach (var image in Model)
+        {
+        <div class="col-md-3">
+            <a href="@Url.Action("Image", "Home", new { id = image.Id })"><img src="@image.Path" class="img-thumbnail"/></a>
+            <div class="row thumbnail-info">
+                <div class="col-md-6 text-center">@image.Likes <span class="glyphicon glyphicon-heart"></span></div>
+                <div class="col-md-6 text-center">@(image.Comments == null ? 0 : image.Comments.Count) <span class="glyphicon glyphicon-comment"></span></div>
+            </div>
+        </div>
+        }
+    </div>
+</div>
+<!-- /container -->
