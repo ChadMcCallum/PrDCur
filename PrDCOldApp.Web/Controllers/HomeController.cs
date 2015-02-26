@@ -183,9 +183,9 @@ namespace PrDCOldApp.Web.Controllers
                         using (var writer = new BinaryWriter(new FileStream(Server.MapPath(uploadModel.UploadUrl), FileMode.Append)))
                         {
                             writer.Write(data, 0, receive.Count);
+                            await socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes("{ \"received\": " + writer.BaseStream.Position + " }")),
+                                WebSocketMessageType.Text, true, CancellationToken.None);
                         }
-                        await socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes("{ \"received\": true }")),
-                            WebSocketMessageType.Text, true, CancellationToken.None);
                     }
                     else
                     {

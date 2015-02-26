@@ -55,7 +55,7 @@
                 }
             }
         };
-        var feed = window.navigator.webkitGetUserMedia(hdConstraints, function (stream) {
+        var feed = Modernizr.prefixed('getUserMedia', navigator)(hdConstraints, function (stream) {
             $('#takeShot').show();
             document.getElementById('feed').src = window.URL.createObjectURL(stream);
             $('#takePicture').click(function () {
@@ -79,6 +79,7 @@
         evt.preventDefault();
         document.getElementById('upload-dialog').showModal();
         var socket = new WebSocket("ws://" + window.location.host + "/home/SendData");
+        var blobSize = 0;
         socket.onopen = function (event) {
             var uploadEntry = {
                 EmailAddress: $('#emailAddress').val(),
@@ -87,16 +88,20 @@
             }
             socket.send(JSON.stringify(uploadEntry));
             socket.onmessage = function (event) {
-                if (JSON.parse(event.data).accepted) {
+                var data = JSON.parse(event.data);
+                if (data.accepted) {
                     getBlob(function (blob) {
-                        var size = blob.size || blob.arrayLength;
-                        for (var i = 0; i < size; i += 1024) {
+                        blobSize = blob.size || blob.arrayLength;
+                        for (var i = 0; i < blobSize; i += 1024) {
                             var segment = blob.slice(i, i + 1024);
                             socket.send(segment);
-                            document.getElementById('upload-progress').value = Math.round(i * 100 / size);
                         }
-                        socket.close();
                     });
+                } else if (data.received) {
+                    document.getElementById('upload-progress').value = Math.round(data.received * 100 / blobSize);
+                    if (data.received >= blobSize) {
+                        socket.close();
+                    }
                 }
             }
             socket.onclose = function () {
