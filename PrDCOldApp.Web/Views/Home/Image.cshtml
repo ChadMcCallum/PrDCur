@@ -1,24 +1,22 @@
-﻿@model PrDCOldApp.Web.Models.ImageEntry
+﻿﻿@model PrDCOldApp.Web.Models.ImageEntry
 
 <div class="jumbotron">
     <div class="container">
-        <picture>
-            <source media="(max-width: 500px)" srcset="@Model.Path.Replace(".", "_t.")"/>
-            <img src="@Model.Path" class="img-responsive"/>
-        </picture>
-        <div>Taken at @Model.Location</div>
-        <div><a href="@Model.Path" download>Download Image</a></div>
+        <img src="@Model.Path" class="img-responsive"/>
+        <div class="well">
+            Taken at @Model.Location<br />
+            <a class="btn btn-default" href="@Model.Path">Download</a>
+        </div>
     </div>
-</div>
-<div class="container">
-    <div>
-        <span id="like-count">@Model.Likes</span> Likes
-    </div>
-    <div id="comments">
-        @if (Model.Comments != null)
-        {
-            foreach (var comment in Model.Comments)
+    <div class="container">
+        <div class="well"><span id="like-count">@Model.Likes</span> Likes
+            <btn class="btn btn-default" id="like"><span class="glyphicon glyphicon-heart"></span></btn>
+        </div>
+        <div id="comments">
+            @if (Model.Comments != null)
             {
+                foreach (var comment in Model.Comments)
+                {
                 <div class="row">
                     <div class="col-md-12">
                         <blockquote>
@@ -27,34 +25,29 @@
                     </div>
                     <div class="col-md-12 text-right">Posted by @comment.User</div>
                 </div>
+                }
             }
-        }
+        </div>
+        <form method="POST">
+            <div class="form-group">
+                <label for="username">Your Name</label>
+                <input type="text" class="form-control" id="username" name="username" style="width: 250px;" />
+            </div>
+            <div class="form-group">
+                <label for="comment">Comment</label>
+                <textarea class="form-control" id="comment" name="comment" rows="3"></textarea>
+            </div>
+            <button type="submit" class="btn btn-default">Submit</button>
+        </form>
     </div>
-    <form method="POST">
-        <div class="form-group">
-            <label for="username">Your Name</label>
-            <input type="text" class="form-control" id="username" name="username" style="width: 250px;"/>
-        </div>
-        <div class="form-group">
-            <label for="comment">Comment</label>
-            <textarea class="form-control" id="comment" name="comment" rows="3"></textarea>
-        </div>
-        <button type="submit" class="btn btn-default">Submit</button>
-    </form>
 </div>
 <script type="text/javascript">
-    $().ready(function() {
-        var eventSource = new EventSource("/api/Events/@Model.Id");
-        eventSource.onmessage = function (e) {
-            var data = JSON.parse(e.data);
-            if (data.Likes) {
-                $('#like-count').html(e.data.Likes);
-            } else {
-                $.each(data, function(i, c) {
-                    var comment = '<div class="row"><div class="col-md-12"><blockquote>' + c.Content + '</blockquote></div><div class="col-md-12 text-right">Posted by ' + c.User + '</div></div>';
-                    $('#comments').append(comment);
-                });
+    $('#like').click(function() {
+        $.ajax('/Home/Like/@Model.Id', {
+            method: 'POST',
+            success: function(r) {
+                $('#like-count').html(r);
             }
-        }
+        });
     });
 </script>

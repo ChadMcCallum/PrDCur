@@ -28,7 +28,7 @@ namespace PrDCOldApp.Web.Controllers
             List<ImageEntry> model = null;
             using (var context = new ImageEntryContext())
             {
-                model = context.Images.Take(16).ToList();
+                model = context.Images.Include(i => i.Comments).Take(16).ToList();
             }
             return View(model);
         }
@@ -137,6 +137,18 @@ namespace PrDCOldApp.Web.Controllers
                 image = context.Images.Include(i => i.Comments).First(i => i.Id == id);
             }
             return View(image);
+        }
+
+        public JsonResult Like(int id)
+        {
+            var result = 0;
+            using (var context = new ImageEntryContext())
+            {
+                var image = context.Images.Find(id);
+                result = ++image.Likes;
+                context.SaveChanges();
+            }
+            return Json(result);
         }
 
         [HttpPost]
