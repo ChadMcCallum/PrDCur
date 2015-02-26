@@ -14,7 +14,7 @@
                 @for (var i = 0; i < Model.Count(); i++)
                 {
                     <div class="item @(i == 0 ? "active" : "")">
-                        <img src="@Model.ElementAt(i).Path"/>
+                        <img src="@Model.ElementAt(i).Path" class="img-responsive"/>
                     </div>
                 }
             </div>

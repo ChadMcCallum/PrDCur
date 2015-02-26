@@ -1,26 +1,143 @@
 ﻿<div class="jumbotron">
     <div class="container">
-        <form method="POST" enctype="multipart/form-data">
+        <form id="upload-form" method="POST" enctype="multipart/form-data">
             <div class="form-group">
                 <label for="uploadFile">Select File</label>
-                <input type="file" class="form-control" id="uploadFile" name="uploadFile"/>
+                <input type="file" class="form-control" id="uploadFile" name="uploadFile" accept="image/*;capture=camera" />
                 <div>- or -</div>
                 <label for="uploadUrl">Copy URL</label>
-                <input type="text" class="form-control" id="uploadUrl" name="uploadUrl"/>
+                <input type="url" class="form-control" id="uploadUrl" name="uploadUrl" />
+                <div>- or -</div>
+                <label for="takePicture">Take Picture</label>
+                <a role="button" class="btn btn-default" id="getImage"><span class="glyphicon glyphicon-camera"></span></a>
+                <div id="takeShot" style="display: none;">
+                    <video id="feed" width="384" height="216" style="border: solid 1px black;" autoplay></video>
+                    <canvas id="shotpreview" width="384" height="216" style="display: none;"></canvas>
+                    <canvas id="shot" width="1280" height="720" style="display: none;"></canvas>
+                    <a role="button" class="btn btn-default" id="takePicture"><span class="glyphicon glyphicon-picture"></span></a>
+                </div>
+                <input type="hidden" id="cameraImage" name="cameraImage" value="" />
             </div>
             <div class="form-group">
                 <label for="emailAddress">Email Address (for notifications)</label>
-                <input type="text" class="form-control" id="emailAddress" name="emailAddress"/>
+                <input type="email" required class="form-control" id="emailAddress" name="emailAddress" />
             </div>
             <div class="form-group">
                 <label for="datePublished">Date / Time to Publish</label>
-                <input type="text" class="form-control" id="datePublished" name="datePublished"/>
+                <input type="datetime-local" class="form-control" id="datePublished" name="datePublished" />
             </div>
             <div class="form-group">
                 <label for="location">Your Location</label>
-                <input type="text" class="form-control" id="location" name="location"/>
+                <input type="text" class="form-control" id="location" name="location" />
+                <a role="button" class="btn btn-default" id="getLocation"><span class="glyphicon glyphicon-map-marker"></span></a>
             </div>
-            <button type="submit" class="btn btn-default">Submit Image</button>
+            <button id="submit" type="submit" class="btn btn-default">Submit Image</button>
         </form>
     </div>
 </div>
+<dialog id="upload-dialog" style="min-width: 200px;">
+    <div>Uploading picture</div>
+    <progress id="upload-progress" max="100" value="0"></progress>
+</dialog>
+<script type="text/javascript">
+    $('#getLocation').click(function () {
+        window.navigator.geolocation.getCurrentPosition(function (result) {
+            $('#location').val(result.coords.latitude + ", " + result.coords.longitude);
+        });
+        return false;
+    });
+    $('#getImage').click(function () {
+        var hdConstraints = {
+            video: {
+                mandatory: {
+                    minWidth: 1280,
+                    minHeight: 720
+                }
+            }
+        };
+        var feed = window.navigator.webkitGetUserMedia(hdConstraints, function (stream) {
+            $('#takeShot').show();
+            document.getElementById('feed').src = window.URL.createObjectURL(stream);
+            $('#takePicture').click(function () {
+                $('#shotpreview').show();
+                $('#feed').hide();
+                document.getElementById('shotpreview').getContext("2d").drawImage(document.getElementById('feed'), 0, 0, 384, 216);
+                document.getElementById('shot').getContext("2d").drawImage(document.getElementById('feed'), 0, 0, 1280, 720);
+                $('#cameraImage').val(document.getElementById('shot').toDataURL("image/png"));
+                stream.stop();
+            });
+        }, function () { });
+    });
+    $('#submit').click(function (evt) {
+        if ($('#uploadUrl').val() !== '') {
+            return true;
+        } else {
+            evt.stopPropagation();
+            evt.preventDefault();
+            document.getElementById('upload-dialog').showModal();
+            var socket = new WebSocket("ws://" + window.location.host + "/home/SendData");
+            socket.onopen = function (event) {
+                var uploadEntry = {
+                    EmailAddress: $('#emailAddress').val(),
+                    DatePublished: $('#datePublished').val(),
+                    Location: $('#location').val()
+                }
+                socket.send(JSON.stringify(uploadEntry));
+                socket.onmessage = function (event) {
+                    if (JSON.parse(event.data).accepted) {
+                        getBlob(function (blob) {
+                            var size = blob.size || blob.arrayLength;
+                            for (var i = 0; i < size; i += 1024) {
+                                var segment = blob.slice(i, i + 1024);
+                                socket.send(segment);
+                                document.getElementById('upload-progress').value = Math.round(i * 100 / size);
+                            }
+                            socket.close();
+                        });
+                    }
+                }
+                socket.onclose = function () {
+                    window.location.href = "/";
+                }
+            }
+        }
+    });
+
+    function getBlob(f) {
+        var selectedFiles = document.getElementById('uploadFile').files;
+        if (selectedFiles.length == 1 && selectedFiles[0].type.match("image.*")) {
+            var reader = new FileReader();
+            reader.onloadend = function (e) {
+                var blob = dataURLToBlob(e.target.result);
+                f(blob);
+            }
+            reader.readAsDataURL(selectedFiles[0]);
+        } else if ($('#cameraImage').val() !== "") {
+            f(dataURLToBlob($('#cameraImage').val()));
+        }
+    }
+
+    function dataURLToBlob(dataURL) {
+        var BASE64_MARKER = ';base64,';
+        if (dataURL.indexOf(BASE64_MARKER) == -1) {
+            var parts = dataURL.split(',');
+            var contentType = parts[0].split(':')[1];
+            var raw = decodeURIComponent(parts[1]);
+
+            return new Blob([raw], { type: contentType });
+        }
+
+        var parts = dataURL.split(BASE64_MARKER);
+        var contentType = parts[0].split(':')[1];
+        var raw = window.atob(parts[1]);
+        var rawLength = raw.length;
+
+        var uInt8Array = new Uint8Array(rawLength);
+
+        for (var i = 0; i < rawLength; ++i) {
+            uInt8Array[i] = raw.charCodeAt(i);
+        }
+
+        return new Blob([uInt8Array], { type: contentType });
+    }
+</script>
