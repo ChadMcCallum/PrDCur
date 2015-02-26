@@ -13,8 +13,12 @@
             <div class="carousel-inner" role="listbox">
                 @for (var i = 0; i < Model.Count(); i++)
                 {
+                    var path = @Model.ElementAt(i).Path;
                     <div class="item @(i == 0 ? "active" : "")">
-                        <img src="@Model.ElementAt(i).Path" class="img-responsive"/>
+                        <picture>
+                            <source media="(max-width: 500px)" srcset="@path.Replace(".", "_t.")"/>
+                            <img src="@path" class="img-responsive"/>
+                        </picture>
                     </div>
                 }
             </div>

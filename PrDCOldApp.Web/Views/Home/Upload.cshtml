@@ -69,36 +69,38 @@
         }, function () { });
     });
     $('#submit').click(function (evt) {
+        if (!$('#upload-form')[0].checkValidity()) {
+            return true;
+        }
         if ($('#uploadUrl').val() !== '') {
             return true;
-        } else {
-            evt.stopPropagation();
-            evt.preventDefault();
-            document.getElementById('upload-dialog').showModal();
-            var socket = new WebSocket("ws://" + window.location.host + "/home/SendData");
-            socket.onopen = function (event) {
-                var uploadEntry = {
-                    EmailAddress: $('#emailAddress').val(),
-                    DatePublished: $('#datePublished').val(),
-                    Location: $('#location').val()
+        } 
+        evt.stopPropagation();
+        evt.preventDefault();
+        document.getElementById('upload-dialog').showModal();
+        var socket = new WebSocket("ws://" + window.location.host + "/home/SendData");
+        socket.onopen = function (event) {
+            var uploadEntry = {
+                EmailAddress: $('#emailAddress').val(),
+                DatePublished: $('#datePublished').val(),
+                Location: $('#location').val()
+            }
+            socket.send(JSON.stringify(uploadEntry));
+            socket.onmessage = function (event) {
+                if (JSON.parse(event.data).accepted) {
+                    getBlob(function (blob) {
+                        var size = blob.size || blob.arrayLength;
+                        for (var i = 0; i < size; i += 1024) {
+                            var segment = blob.slice(i, i + 1024);
+                            socket.send(segment);
+                            document.getElementById('upload-progress').value = Math.round(i * 100 / size);
+                        }
+                        socket.close();
+                    });
                 }
-                socket.send(JSON.stringify(uploadEntry));
-                socket.onmessage = function (event) {
-                    if (JSON.parse(event.data).accepted) {
-                        getBlob(function (blob) {
-                            var size = blob.size || blob.arrayLength;
-                            for (var i = 0; i < size; i += 1024) {
-                                var segment = blob.slice(i, i + 1024);
-                                socket.send(segment);
-                                document.getElementById('upload-progress').value = Math.round(i * 100 / size);
-                            }
-                            socket.close();
-                        });
-                    }
-                }
-                socket.onclose = function () {
-                    window.location.href = "/";
-                }
+            }
+            socket.onclose = function () {
+                window.location.href = "/";
             }
         }
     });
